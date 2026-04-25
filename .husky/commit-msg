@@ -1,3 +1,4 @@
 #!/bin/sh
-echo "Use pnpm run commit!"
+
+echo "❌ Используй pnpm run commit"
 exit 1
