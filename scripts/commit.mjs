@@ -1,4 +1,4 @@
-import { select, input } from "@inquirer/prompts";
+import { select, input, checkbox } from "@inquirer/prompts";
 import { execSync } from "child_process";
 
 // 🔍 проверка staged изменений
@@ -9,22 +9,73 @@ try {
   hasStaged = false;
 } catch {}
 
-if (!hasStaged) {
-  const choice = await select({
-    message: "😴 Нет staged изменений. Добавить все файлы в коммит?",
-    choices: [
-      { name: "👍 Да, давай", value: "yes" },
-      { name: "👋 Нет, я передумал", value: "no" },
-    ],
-  });
+let filesToCommit = [];
 
-  if (choice === "no") {
-    console.log("👌 Ок, выходим");
+if (!hasStaged) {
+  // 📋 получить список изменённых файлов
+  const statusOutput = execSync("git status --porcelain").toString();
+  const untrackedOutput = execSync("git ls-files --others --exclude-standard").toString();
+
+  const modifiedFiles = statusOutput
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => line.slice(3))
+    .filter(Boolean);
+
+  const newFiles = untrackedOutput
+    .split("\n")
+    .filter(Boolean);
+
+  const allFiles = [...modifiedFiles, ...newFiles];
+
+  if (allFiles.length === 0) {
+    console.log("❌ Нет изменений для коммита");
     process.exit(0);
   }
 
-  console.log("📦 Добавляем все изменения...");
-  execSync("git add -A", { stdio: "inherit" });
+  // 📝 выбор файлов
+  if (allFiles.length === 1) {
+    // Автоматически выбираем единственный файл
+    filesToCommit = allFiles;
+    console.log(`📄 Автоматически выбран файл: ${allFiles[0]}`);
+  } else {
+    const choice = await select({
+      message: "😴 Нет staged изменений. Что делаем?",
+      choices: [
+        { name: "📦 Добавить все файлы", value: "all" },
+        { name: "📋 Выбрать конкретные файлы", value: "select" },
+        { name: "👋 Отмена", value: "cancel" },
+      ],
+    });
+
+    if (choice === "cancel") {
+      console.log("👌 Ок, выходим");
+      process.exit(0);
+    }
+
+    if (choice === "all") {
+      filesToCommit = allFiles;
+    } else {
+      // Чекбокс для выбора файлов
+      const fileChoices = allFiles.map((file) => ({
+        name: file,
+        value: file,
+        checked: false,
+      }));
+
+      filesToCommit = await checkbox({
+        message: "Выбери файлы для коммита:",
+        choices: fileChoices,
+        validate: (answer) => (answer.length > 0 ? true : "Выбери хотя бы один файл"),
+      });
+    }
+  }
+
+  // Добавляем выбранные файлы
+  console.log(`📦 Добавляем ${filesToCommit.length} файл(ов)...`);
+  for (const file of filesToCommit) {
+    execSync(`git add "${file}"`, { stdio: "inherit" });
+  }
 }
 
 // 🧩 выбор типа коммита
