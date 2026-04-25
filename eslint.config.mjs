@@ -10,7 +10,15 @@ const config = [
   ...nextTs,
 
   {
-    ignores: ['.next/**', 'out/**', 'build/**', 'node_modules/**', 'next-env.d.ts'],
+    ignores: [
+      '.husky/**',
+      '.next/**',
+      'out/**',
+      'build/**',
+      'node_modules/**',
+      'next-env.d.ts',
+      'scripts/**',
+    ],
   },
 
   {
@@ -54,7 +62,10 @@ const config = [
           default: 'disallow',
           rules: [
             { from: 'app', allow: ['*'] },
-            { from: 'pages', allow: ['widgets', 'features', 'entities', 'shared'] },
+            {
+              from: 'pages',
+              allow: ['widgets', 'features', 'entities', 'shared'],
+            },
             { from: 'widgets', allow: ['features', 'entities', 'shared'] },
             { from: 'features', allow: ['entities', 'shared'] },
             { from: 'entities', allow: ['shared'] },
